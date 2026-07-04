@@ -1,35 +1,52 @@
 import httpStatus from "http-status";
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { userService } from "./user.service";
+import { catchAsync } from "../../utils/catchAsync";
+import { sendResponse } from "../../utils/sendResponse";
 
-const createUser = async (req: Request, res: Response) => {
-
+const createUser = catchAsync(async (req, res, next) => {
     //req & res এর কাজ টুকু বাদ দিয়ে বাকিটা service এর কাজ
-    try {
+    const payload = req.body
 
-        const payload = req.body
+    const user = await userService.registerUserIntoDB(payload)
 
-        const user = await userService.registerUserIntoDB(payload)
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.CREATED,
+        message: "User registered successfully",
+        data: user
+    })
+})
 
-        res.status(httpStatus.CREATED).json({
-            success: true,
-            statusCode: httpStatus.CREATED,
-            message: "User registered successfully",
-            data: {
-                user
-            }
-        })
-    } catch (error) {
-        console.log(error)
-        res.status(httpStatus.BAD_REQUEST).json({
-            success: false,
-            statusCode: httpStatus.BAD_REQUEST,
-            message: "User registration failed",
-            error: (error as Error).message
-        })
-    }
-}
+const getMyProfile = catchAsync(async (req, res, next) => {
+
+
+    const profile = await userService.getMyProfileFromDB(req.user?.id as string)
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "User profile fetched successfully",
+        data: profile
+    })
+})
+
+const updateMyProfile = catchAsync(async (req, res, next) => {
+
+    const userId = req.user?.id as string
+    const payload = req.body
+
+    const updatedProfile = await userService.updateMyProfileIntoDB(userId, payload)
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "User profile updated successfully",
+        data: updatedProfile
+    })
+})
 
 export const userController = {
-    createUser
+    createUser,
+    getMyProfile,
+    updateMyProfile
 }
