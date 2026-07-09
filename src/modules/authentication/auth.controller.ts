@@ -1,3 +1,4 @@
+import { NextFunction, Request, Response } from "express";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import { authService } from "./auth.service";
@@ -25,6 +26,26 @@ const loginUser = catchAsync(async (req, res, next) => {
     })
 })
 
+const refreshToken = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+
+    const refreshToken = req.cookies.refreshToken
+
+    const { accessToken } = await authService.refreshToken(refreshToken)
+
+    res.cookie("accessToken", accessToken, {
+        httpOnly: true, sameSite: "none", secure: false, maxAge: 1000 * 60 * 60 * 24 // 24 hours or 1 day
+    })
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "Token refreshed successfully",
+        data: { accessToken }
+
+    })
+
+})
 export const authController = {
-    loginUser
+    loginUser,
+    refreshToken
 }
