@@ -20,8 +20,9 @@ const createUser = catchAsync(async (req, res, next) => {
 
 const getMyProfile = catchAsync(async (req, res, next) => {
 
+    const userId = req.user?.id // from auth() middleware
 
-    const profile = await userService.getMyProfileFromDB(req.user?.id as string)
+    const profile = await userService.getMyProfileFromDB(userId as string)
 
     sendResponse(res, {
         success: true,

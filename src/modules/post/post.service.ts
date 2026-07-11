@@ -1,6 +1,7 @@
 import { CommentStatus, PostStatus } from "../../../generated/prisma/enums"
+import { PostWhereInput } from "../../../generated/prisma/models"
 import { prisma } from "../../lib/prisma"
-import { ICreatePostPayload, IUpdatePostPayload } from "./post.interface"
+import { ICreatePostPayload, IPostQuery, IUpdatePostPayload } from "./post.interface"
 
 const createPost = async (payload: ICreatePostPayload, userId: string) => {
     const result = await prisma.post.create({
@@ -13,8 +14,196 @@ const createPost = async (payload: ICreatePostPayload, userId: string) => {
     return result
 }
 
-const getAllPosts = async () => {
+
+
+const getAllPosts = async (query: IPostQuery) => {
+    const limit = query.limit ? parseInt(query.limit) : 10
+    const page = query.page ? parseInt(query.page) : 1
+    const skip = (page - 1) * limit
+
+    const sortBy = query.sortBy || "createdAt"
+    const sortOrder = query.sortOrder || "desc"
+
+    const tags = query.tags ? JSON.parse(query.tags as string) : ""
+    const tagsArray = Array.isArray(tags) ? tags : [tags]
+
+    //dynamic ([optimized] with array push method) filtering, searching
+    const andConditions: PostWhereInput[] = []
+    if (query.searchTerm) {
+        andConditions.push({
+            OR: [
+                {
+                    title: {
+                        contains: query.searchTerm,
+                        mode: "insensitive"
+                    }
+                },
+                {
+                    content: {
+                        contains: query.searchTerm,
+                        mode: "insensitive"
+                    }
+                }
+            ]
+        })
+    }
+    if (query.title) {
+        andConditions.push({
+            title: query.title
+        })
+    }
+    if (query.content) {
+        andConditions.push({
+            content: query.content
+        })
+    }
+    if (query.authorId) {
+        andConditions.push({
+            authorId: query.authorId
+        })
+    }
+    if (query.isFeatured) {
+        andConditions.push({
+            isFeatured: query.isFeatured
+        })
+    }
+    if (query.status) {
+        andConditions.push({
+            status: query.status
+        })
+    }
+    if (query.tags) {
+        andConditions.push({
+            tags: {
+                hasSome: tagsArray
+            }
+        })
+    }
+
     const result = await prisma.post.findMany({
+        // Filtering or Exact Matching of data ----><
+        // 1. Exact Matching (Approach - 1)
+        // where: {
+        //     title: "Post Number 3",
+        //     content: "Neymar"
+        // },
+        // 2. Exact Matching (Approach - 2)
+        // where: {
+        //     AND: [
+        //         {
+        //             title: "Post Number 3"
+        //         },
+        //         {
+        //             content: "Neymar"
+        //         },
+        //         {
+        //             tags: {
+        //                 has: "Backend"
+        //             }
+        //         }
+        //     ]
+        // },
+
+        //Searching or Partial Matching of data ----><
+        // 1. Partial Matching (Approach - 1)
+        // where: {
+        //     title: {
+        //         contains: "ronaldo",
+        //         mode: "insensitive"
+        //     }
+        // },
+        // 2. Partial Matching (Approach - 2)
+        // where: {
+        //     OR: [
+        //         {
+        //             title: {
+        //                 contains: "RonaLdo",
+        //                 mode: "insensitive"
+        //             }
+        //         },
+        //         {
+        //             content: {
+        //                 contains: "ronaldo",
+        //                 mode: "insensitive"
+        //             }
+        //         }
+        //     ]
+        // },
+
+        //Combining Searching and Filtering (Partial Matching and Exact Matching) ----><
+        // where: {
+        //     AND: [
+        //         {
+        //             //searching
+        //             OR: [
+        //                 {
+        //                     title: {
+        //                         contains: "ronal",
+        //                         mode: "insensitive"
+        //                     }
+        //                 },
+        //                 {
+        //                     content: {
+        //                         contains: "Messi",
+        //                         mode: "insensitive"
+        //                     }
+        //                 }
+        //             ]
+        //         },
+        //         //filtering
+        //         {
+        //             title: "Ronaldo Nazario"
+        //         },
+        //         {
+        //             content: "ronaldo"
+        //         }
+        //     ]
+        // },
+
+
+        //analog searching and filtering ----><        
+        // where: {
+        //     AND: [
+        //         query.searchTerm ? {
+        //             OR: [
+        //                 {
+        //                     title: {
+        //                         contains: query.searchTerm,
+        //                         mode: "insensitive"
+        //                     }
+        //                 },
+        //                 {
+        //                     content: {
+        //                         contains: query.searchTerm,
+        //                         mode: "insensitive"
+        //                     }
+        //                 }
+        //             ]
+        //         } : {},
+
+
+        //         //title filtering
+        //         query.title ? { title: query.title } : {},
+
+        //         // content filtering
+        //         query.content ? { content: query.content } : {}
+        //     ]
+        // },
+
+        // dynamic searching, filtering --->
+        where: {
+            AND: andConditions
+        },
+
+        //dynamic pagination part
+        take: limit,
+        skip: skip,
+
+        orderBy: {
+            // sortBy : sortOrder
+            [sortBy]: sortOrder
+        },
+
         include: {
             author: {
                 omit: {
