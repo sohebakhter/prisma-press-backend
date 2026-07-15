@@ -80,7 +80,11 @@ const getAllPosts = async (query: IPostQuery) => {
         })
     }
 
-    const result = await prisma.post.findMany({
+    andConditions.push({
+        isPremium: false
+    })
+
+    const posts = await prisma.post.findMany({
         // Filtering or Exact Matching of data ----><
         // 1. Exact Matching (Approach - 1)
         // where: {
@@ -214,7 +218,16 @@ const getAllPosts = async (query: IPostQuery) => {
         }
     })
 
-    return result
+    return {
+        data: posts,
+        meta: {
+            page,
+            limit,
+            total: posts.length,
+            totalPages: Math.ceil(posts.length / limit)
+        }
+
+    }
 }
 
 const getPostById = async (postId: string) => {
@@ -236,7 +249,9 @@ const getPostById = async (postId: string) => {
 
             const post = await tx.post.findUniqueOrThrow({
                 where: {
-                    id: postId
+                    id: postId,
+                    isPremium: false
+
                 },
                 include: {
                     author: {

@@ -39,23 +39,15 @@ const getCommentByAuthorId = (authorId: string) => {
     return comment
 }
 
-const getCommentByCommentId = async (commentId: string) => {
+const getCommentByPostId = async (postId: string) => {
     const comment = await prisma.comment.findMany({
         where: {
-            id: commentId
+            postId
         },
         orderBy: {
             createdAt: "desc"
-        },
-        include: {
-            post: {
-                select: {
-                    id: true,
-                    title: true,
-                    views: true
-                }
-            }
         }
+
     })
 
     return comment
@@ -131,7 +123,7 @@ const moderateComment = async (id: string, data: IModerateCommentPayload) => {
 export const commentService = {
     createComment,
     getCommentByAuthorId,
-    getCommentByCommentId,
+    getCommentByPostId,
     updateComment,
     deleteComment,
     moderateComment

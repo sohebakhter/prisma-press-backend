@@ -35,11 +35,11 @@ const getCommentByAuthorId = (catchAsync(async (req, res, next) => {
 
 }))
 
-const getCommentByCommentId = (catchAsync(async (req, res, next) => {
+const getCommentByPostId = (catchAsync(async (req, res, next) => {
 
-    const { commentId } = req.params
+    const { postId, } = req.params
 
-    const result = await commentService.getCommentByAuthorId(commentId as string)
+    const result = await commentService.getCommentByPostId(postId as string)
 
     sendResponse(res, {
         success: true,
@@ -101,7 +101,7 @@ const moderateComment = (catchAsync(async (req, res, next) => {
 export const commentController = {
     createComment,
     getCommentByAuthorId,
-    getCommentByCommentId,
+    getCommentByPostId,
     updateComment,
     deleteComment,
     moderateComment

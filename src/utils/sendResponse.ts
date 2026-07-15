@@ -2,8 +2,10 @@ import { Response } from "express"
 
 type TMeta = {
     page: number
-    size: number
+    size?: number
+    limit: number
     total: number
+    totalPages?: number
 }
 
 type TResponseData<T> = {
